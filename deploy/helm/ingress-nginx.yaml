@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mcp-gateway-registry
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - mcpregistry.mcp-gateway.itg.it.org
+      # Create this TLS Secret through cert-manager or your certificate process.
+      secretName: mcp-gateway-registry-tls
+  rules:
+    - host: mcpregistry.mcp-gateway.itg.it.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: registry
+                port:
+                  name: http

@@ -1,0 +1,51 @@
+# Company deployment overlay for Rancher + ingress-nginx.
+# Keep credentials out of this file. The chart generates its own secrets on the
+# first install; use your cluster secret-management solution for production.
+
+global:
+  domain: mcp-gateway.itg.it.org
+  image:
+    # The chart appends /registry, /auth-server and /mcpgw.
+    registry: docker-registry.itg.com.cn/itg
+    tag: "1.29.0"
+    pullPolicy: IfNotPresent
+  authProvider:
+    type: keycloak
+    keycloak:
+      adminUsername: admin
+      realm: mcp-gateway
+  ingress:
+    className: nginx
+    tls: true
+    routingMode: subdomain
+
+# Use the chart-managed dependencies for the first company deployment.
+mongodb:
+  enabled: true
+
+keycloak:
+  create: true
+
+keycloak-configure:
+  enabled: true
+  dcr:
+    enabled: true
+
+# The current upstream ingress template contains ALB-specific annotations.
+# Disable it and use deploy/helm/ingress-nginx.yaml for Rancher's NGINX ingress.
+registry:
+  app:
+    replicas: 2
+    deploymentMode: with-gateway
+    registryMode: full
+  ingress:
+    enabled: false
+
+auth-server:
+  app:
+    replicas: 2
+
+mcpgw:
+  enabled: true
+  app:
+    replicas: 1
