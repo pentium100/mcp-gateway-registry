@@ -16,7 +16,7 @@ global:
       realm: mcp-gateway
   ingress:
     className: nginx
-    tls: true
+    tls: false
     routingMode: subdomain
 
 # Use the chart-managed dependencies for the first company deployment.
