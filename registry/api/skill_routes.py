@@ -78,6 +78,7 @@ from ..services.skill_service import (
     get_skill_service,
 )
 from ..services.tool_validation_service import get_tool_validation_service
+from ..services.visibility import redact_proxy_backend_url
 from ..services.webhook_service import send_registration_webhook
 from ..utils.metadata import (
     flatten_metadata_to_text,
@@ -282,6 +283,11 @@ async def list_skills(
                 health_status=s.health_status,
                 last_checked_time=s.last_checked_time,
                 status=s.status,
+                # Gateway-proxy opt-in: carry through so the card badge + edit
+                # modal reflect stored state (proxy_client_url is server-derived).
+                is_proxied=s.is_proxied,
+                proxy_target_url=s.proxy_target_url,
+                proxy_client_url=s.proxy_client_url,
             )
             for s in skill_cards
         ]
@@ -307,6 +313,10 @@ async def list_skills(
     scan_summaries = await skill_scanner_service.get_scan_summaries()
     for skill in page_skills:
         skill.security_scan = scan_summaries.get(skill.path)
+        # Redact the internal backend origin (proxy_target_url) for non-admins,
+        # mirroring the MCP server read endpoints. is_proxied and the derived
+        # proxy_client_url stay visible.
+        redact_proxy_backend_url(skill, user_context)
 
     logger.info(
         f"Returning {len(page_skills)} skills for user "
@@ -960,6 +970,8 @@ async def get_skill(
 
         skill.metadata = SkillMetadata(**(projected or {}))
 
+    # Redact the internal backend origin for non-admins (mirrors the list path).
+    redact_proxy_backend_url(skill, user_context)
     return skill
 
 

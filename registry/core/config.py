@@ -666,6 +666,28 @@ class Settings(BaseSettings):
             "The cloud metadata address 169.254.169.254 is never permitted."
         ),
     )
+
+    # Trusted-IdP allowlist for the credential-bearing OAuth token endpoints used
+    # by per-user egress consent. Deliberately separate from ssrf_allowed_hosts:
+    # an operator proxy-target bypass must never relax a token POST, so this is
+    # its own opt-in, hosts-only, and defaults to empty (no behaviour change).
+    # Needed because a self-hosted IdP (Keycloak, Entra via Private Link, etc.)
+    # legitimately resolves to a private address, yet the gateway is already
+    # required to trust that same IdP for its own authentication via KEYCLOAK_URL.
+    egress_oauth_trusted_idp_hosts: str = Field(
+        default="",
+        description=(
+            "Comma-separated hostnames of operator-controlled OAuth/OIDC identity "
+            "providers whose token endpoints may resolve to private addresses "
+            "(e.g. 'keycloak.internal.example.com'). Applies ONLY to the "
+            "credentialed-OAuth profile used for egress token exchange. Hosts must "
+            "be named exactly; no CIDRs and no wildcards. HTTPS is still required, "
+            "answers are still resolved, classified and pinned, and cloud/workload "
+            "credential, metadata and link-local addresses are never permitted. "
+            "Keep this list tight: entries here receive client secrets, refresh "
+            "tokens and user assertions."
+        ),
+    )
     nginx_config_validation_required: bool = Field(
         default=False,
         description=(
@@ -1285,6 +1307,40 @@ class Settings(BaseSettings):
             "canonical URLs)."
         ),
     )
+    gateway_proxy_prefix: str = Field(
+        default="gateway",
+        description=(
+            "URL path segment that namespaces every auto-generated client-facing "
+            "proxy route. The client connects to /{prefix}/{entity_type}/{name}; "
+            "the registry derives this path automatically from the entity's type "
+            "and registered path, so operators never hand-enter the client path "
+            "(they only provide the backend/origin proxy_target_url). Rendered "
+            "verbatim into nginx location directives, so it is restricted to a "
+            "single URL-safe path segment (letters, digits, hyphen, underscore)."
+        ),
+    )
+
+    @field_validator("gateway_proxy_prefix")
+    @classmethod
+    def _validate_gateway_proxy_prefix(
+        cls,
+        v: str,
+    ) -> str:
+        """Reject anything that is not a single URL-safe path segment.
+
+        This value is rendered verbatim into an nginx ``location`` path, so a
+        slash, whitespace, or config-special character would either break the
+        reload or open a path-injection surface. Enforce a strict single-segment
+        grammar (no leading/trailing slash, no embedded separators) at load time.
+        """
+        stripped = v.strip().strip("/")
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", stripped):
+            raise ValueError(
+                f"gateway_proxy_prefix={v!r} is not a valid path segment "
+                "(expected letters, digits, hyphen, or underscore; no slashes)"
+            )
+        return stripped
+
     gateway_proxy_allow_private_targets: bool = Field(
         default=False,
         description=(

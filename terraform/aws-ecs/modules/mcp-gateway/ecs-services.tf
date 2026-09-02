@@ -591,6 +591,12 @@ module "ecs_service_auth" {
         {
           name  = "EGRESS_REGISTRY_INTERNAL_URL"
           value = var.egress_registry_internal_url
+        },
+        {
+          # OBO (same-IdP) token exchange against a self-hosted IdP: allowlist its
+          # private-resolving token endpoint. Mirrors the registry container.
+          name  = "EGRESS_OAUTH_TRUSTED_IDP_HOSTS"
+          value = var.egress_oauth_trusted_idp_hosts
         }
         ],
         # PR #947: MongoDB connection string override (plain-text variant).
@@ -1542,6 +1548,10 @@ module "ecs_service_registry" {
           name  = "GATEWAY_GENERIC_CLIENT_MAX_BODY_SIZE"
           value = tostring(var.gateway_generic_client_max_body_size)
         },
+        {
+          name  = "GATEWAY_PROXY_PREFIX"
+          value = tostring(var.gateway_proxy_prefix)
+        },
         # Internal/workshop deployment classification (telemetry labels; issue #1216)
         {
           name  = "INTERNAL_ONLY_DEPLOYMENT"
@@ -1837,6 +1847,14 @@ module "ecs_service_registry" {
         {
           name  = "EGRESS_OBO_ALLOWED_AUDIENCES"
           value = var.egress_obo_allowed_audiences
+        },
+        # Hosts whose OAuth token endpoints may resolve to private addresses, for a
+        # self-hosted IdP (Keycloak, Entra over Private Link). Exact hostnames only;
+        # does not inherit ssrf_allowed_hosts, so a proxy-target bypass can never
+        # relax a token POST. Empty by default, which permits none.
+        {
+          name  = "EGRESS_OAUTH_TRUSTED_IDP_HOSTS"
+          value = var.egress_oauth_trusted_idp_hosts
         },
         # AUTH_SERVER_NGINX_MARKER_SECRET is injected via secrets/valueFrom below
         # (required unconditionally, not just for egress).

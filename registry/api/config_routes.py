@@ -426,6 +426,10 @@ CONFIG_GROUPS: dict[str, dict[str, Any]] = {
             ("egress_state_ttl_seconds", "OAuth State TTL (s)", False),
             ("egress_registry_internal_url", "Registry Internal Vend URL", False),
             ("egress_obo_allowed_audiences", "OBO Allowed Audiences", False),
+            # trusted-IdP allowlist for the credentialed-OAuth SSRF profile; not
+            # sensitive (hostnames only) but shown here because entries receive
+            # client secrets and refresh tokens
+            ("egress_oauth_trusted_idp_hosts", "Trusted IdP Hosts", False),
             # application-layer credential encryption (key is masked; only its
             # presence/absence is shown, never the value)
             ("egress_credential_encryption_key", "Credential Encryption Key", True),
@@ -476,6 +480,7 @@ CONFIG_GROUPS: dict[str, dict[str, Any]] = {
         "fields": [
             ("gateway_generic_proxy_enabled", "Generic Proxy Enabled", False),
             ("gateway_canonical_namespace_enabled", "Canonical Namespace Enabled", False),
+            ("gateway_proxy_prefix", "Proxy URL Prefix", False),
             ("gateway_proxy_allow_private_targets", "Allow Private Targets", False),
             ("gateway_generic_require_bearer_for_writes", "Require Bearer for Writes", False),
             ("gateway_generic_client_max_body_size", "Client Max Body Size (nginx)", False),
