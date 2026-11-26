@@ -6535,18 +6535,16 @@ async def _read_bounded(
 # authenticate the caller to the GATEWAY and are stripped on the egress hop --
 # they are never forwarded to an upstream MCP server. Upstream credentials are
 # supplied exclusively by the egress vault (oauth_user / PAT / custom-header),
-# never relayed from the client except for explicitly trusted
-# same-trust-domain servers (see _INTERNAL_INGRESS_RELAY_SERVERS).
+# never relayed from the client. The single exception is the built-in,
+# same-trust-domain registry-tools server (see _INTERNAL_INGRESS_RELAY_SERVERS).
 
-# Explicit same-trust-domain backends that receive personal ingress credentials.
-# itg-scbs verifies the user JWT for community contribution attribution; its
-# registered upstream must remain the company-owned ITG-SCBS MCP service.
+# The ONLY servers whose backend receives the relayed ingress Authorization.
 # Hardcoded (not configurable) and internal by design: airegistry-tools is the
 # gateway's own bundled registry-tools MCP server (proxied to mcpgw), a
 # same-trust-domain component. Keyed on the verified, path-validated `server`
 # claim (first path segment). This is NOT a general relay feature -- external
 # servers that need an upstream credential use the egress vault.
-_INTERNAL_INGRESS_RELAY_SERVERS: frozenset[str] = frozenset({"airegistry-tools", "itg-scbs"})
+_INTERNAL_INGRESS_RELAY_SERVERS: frozenset[str] = frozenset({"airegistry-tools"})
 
 # Proxy-context headers describe the client -> Gateway hop (scheme, host, port,
 # path prefix as seen by nginx/an ingress LB) and must not be copied onto the
@@ -6575,9 +6573,9 @@ def _forward_headers(
 
     Ingress-auth policy (issue #1266): Cookie is ALWAYS stripped (never
     forwarded to any upstream). Authorization and X-Authorization are also
-    stripped UNLESS ``relay_authorization`` is True -- set only for explicitly
-    trusted internal servers (_INTERNAL_INGRESS_RELAY_SERVERS), which
-    receive BOTH forms (the MCP Gateway carries the caller bearer in
+    stripped UNLESS ``relay_authorization`` is True -- set only for the built-in
+    internal registry-tools server (_INTERNAL_INGRESS_RELAY_SERVERS), which
+    receives BOTH forms (the MCP Gateway carries the caller bearer in
     X-Authorization, not Authorization). Every other server gets no client auth
     header on egress; upstream creds come from the vault.
     """
@@ -7347,9 +7345,9 @@ async def mcp_proxy(
     proxy_timeout = _read_mcp_proxy_timeout()
 
     # Ingress-auth policy (issue #1266): client auth headers authenticate the
-    # caller to the gateway and are stripped on egress. The exceptions are the
-    # explicitly trusted internal servers, which receive the relayed
-    # Authorization (same-trust-domain components). The decision keys on
+    # caller to the gateway and are stripped on egress. The ONLY exception is
+    # the built-in internal registry-tools server, which receives the relayed
+    # Authorization (it is a same-trust-domain component). The decision keys on
     # the verified, path-validated `server` claim, never a forgeable header.
     registered_server = (claims.get("server") or "").lower()
     relay_ingress_auth = registered_server in _INTERNAL_INGRESS_RELAY_SERVERS

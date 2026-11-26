@@ -4996,11 +4996,11 @@ class TestForwardHeadersIngressStrip:
         assert out.get("Mcp-Session-Id") == "vs-abc"
         assert out.get("Accept") == "z"
 
-    def test_internal_relay_server_set_is_explicit(self):
-        """Only the built-in registry tools and trusted company SCBS receive ingress credentials."""
+    def test_internal_relay_server_set_is_airegistry_tools(self):
+        """The internal relay allowlist is the single hardcoded registry-tools server."""
         from auth_server.server import _INTERNAL_INGRESS_RELAY_SERVERS
 
-        assert _INTERNAL_INGRESS_RELAY_SERVERS == frozenset({"airegistry-tools", "itg-scbs"})
+        assert _INTERNAL_INGRESS_RELAY_SERVERS == frozenset({"airegistry-tools"})
 
     def test_proxy_authorization_stripped(self):
         """Proxy-Authorization (hop-by-hop and an auth header) never reaches upstream."""
